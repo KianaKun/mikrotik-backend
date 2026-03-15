@@ -19,7 +19,7 @@ Backend API untuk manajemen token WiFi MikroTik berbasis Laravel 11.
 ### 1. Clone & Install Dependencies
 
 ```bash
-git clone https://github.com/username/mikrotik-backend.git
+git clone https://github.com/KianaKun/mikrotik-backend.git
 cd mikrotik-backend
 composer install
 ```
