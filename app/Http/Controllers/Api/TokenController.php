@@ -21,48 +21,75 @@ class TokenController extends Controller
     {
         $query = Token::latest();
 
-        match ($request->query('status')) {
+        $status = $request->query('status');
+
+        match ($status) {
             'active'  => $query->active(),
             'used'    => $query->used(),
             'expired' => $query->expired(),
             default   => null,
         };
 
-        return response()->json(['success' => true, 'data' => $query->paginate(50)]);
+        $tokens = $query->paginate(50);
+
+        $isGenerate = Token::whereDate('created_at', today())->exists();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'current_page' => $tokens->currentPage(),
+                'data'         => $tokens->items(),
+                'per_page'     => $tokens->perPage(),
+                'total'        => $tokens->total(),
+                'status'       => $status,
+                'is_generate'  => $isGenerate,
+            ]
+        ]);
     }
 
     public function generate(): JsonResponse
     {
         $tokens = $this->tokenService->generateDailyTokens();
-        $this->mikrotikService->syncTokens($tokens);
+        // $this->mikrotikService->syncTokens($tokens);
 
         return response()->json([
             'success' => true,
             'message' => count($tokens) . ' token berhasil di-generate.',
-            'data'    => ['count' => count($tokens), 'valid_until' => $tokens[0]->valid_until ?? null],
+            'data'    => [
+                'count'       => count($tokens),
+                'valid_until' => $tokens[0]->valid_until ?? null,
+            ],
         ]);
     }
 
-    public function addCustom(Request $request): JsonResponse
+    public function addCustom(): JsonResponse
     {
-        $request->validate(['note' => 'nullable|string|max:200']);
+        $token = $this->tokenService->generateCustomToken('');
+        // $this->mikrotikService->addHotspotUser($token->code, $token->valid_until->toDateTimeString());
 
-        $token = $this->tokenService->generateCustomToken($request->note ?? '');
-        $this->mikrotikService->addHotspotUser($token->code, $token->valid_until->toDateTimeString());
-
-        return response()->json(['success' => true, 'message' => 'Token custom berhasil dibuat.', 'data' => $token], 201);
+        return response()->json([
+            'success' => true,
+            'message' => 'Token custom berhasil dibuat.',
+            'data'    => $token,
+        ], 201);
     }
 
     public function destroy(Token $token): JsonResponse
     {
         if ($token->is_used) {
-            return response()->json(['success' => false, 'message' => 'Token yang sudah dipakai tidak bisa dihapus.'], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Token yang sudah dipakai tidak bisa dihapus.',
+            ], 422);
         }
 
-        $this->mikrotikService->removeHotspotUser($token->code);
+        // $this->mikrotikService->removeHotspotUser($token->code);
         $token->delete();
 
-        return response()->json(['success' => true, 'message' => 'Token berhasil dihapus.']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Token berhasil dihapus.',
+        ]);
     }
 
     public function exportPdf()

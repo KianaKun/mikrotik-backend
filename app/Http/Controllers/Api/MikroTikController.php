@@ -7,18 +7,36 @@ use App\Models\Setting;
 use App\Services\MikroTikService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class MikroTikController extends Controller
 {
     public function __construct(protected MikroTikService $mikrotikService) {}
 
-    public function devices(): JsonResponse
+    public function devices(Request $request): JsonResponse
     {
         $devices = $this->mikrotikService->getActiveDevices();
 
+        $page = $request->get('page', 1);
+        $perPage = 50;
+
+        $collection = collect($devices);
+
+        $paginated = new LengthAwarePaginator(
+            $collection->forPage($page, $perPage)->values(),
+            $collection->count(),
+            $perPage,
+            $page
+        );
+
         return response()->json([
             'success' => true,
-            'data'    => ['count' => count($devices), 'devices' => $devices],
+            'data' => [
+                'current_page' => $paginated->currentPage(),
+                'data' => $paginated->items(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+            ]
         ]);
     }
 
