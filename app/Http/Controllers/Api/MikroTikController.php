@@ -33,9 +33,9 @@ class MikroTikController extends Controller
             'success' => true,
             'data' => [
                 'current_page' => $paginated->currentPage(),
-                'data' => $paginated->items(),
-                'per_page' => $paginated->perPage(),
-                'total' => $paginated->total(),
+                'data'         => $paginated->items(),
+                'per_page'     => $paginated->perPage(),
+                'total'        => $paginated->total(),
             ]
         ]);
     }
@@ -50,13 +50,36 @@ class MikroTikController extends Controller
         $ok = $this->mikrotikService->setWifiSpeed($request->download, $request->upload);
 
         if (!$ok) {
-            return response()->json(['success' => false, 'message' => 'Gagal mengubah kecepatan. Cek koneksi ke MikroTik.'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengubah kecepatan. Cek koneksi ke MikroTik.'
+            ], 500);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Kecepatan WiFi berhasil diubah.',
             'data'    => ['download' => $request->download, 'upload' => $request->upload],
+        ]);
+    }
+    public function disconnect(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ip' => 'required|ip'
+        ]);
+
+        $ok = $this->mikrotikService->disconnectDevice($request->ip);
+
+        if (!$ok) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal disconnect device'
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Device berhasil di-disconnect'
         ]);
     }
 }

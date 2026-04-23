@@ -47,6 +47,51 @@ class TokenController extends Controller
         ]);
     }
 
+    public function login(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => 'required|string'
+        ]);
+
+        $token = Token::where('code', $request->token)
+            ->where('is_used', false)
+            ->first();
+
+        if (!$token) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token tidak valid atau sudah digunakan'
+            ], 401);
+        }
+
+        // tandai token dipakai
+        $token->update([
+            'is_used' => true,
+            'used_at' => now()
+        ]);
+
+        // ambil IP client
+        $ip = $request->ip();
+
+        // inject ke MikroTik
+        $ok = $this->mikrotikService->addToAddressList($ip, $token->valid_until);
+
+        if (!$ok) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal authorize ke MikroTik'
+            ], 500);
+        }
+
+        // ❗ penting: jangan redirect
+        return response()->json([
+            'success' => true,
+            'message' => 'Login berhasil',
+            'ip' => $ip,
+            'valid_until' => $token->valid_until
+        ]);
+    }
+
     public function generate(): JsonResponse
     {
         $tokens = $this->tokenService->generateDailyTokens();

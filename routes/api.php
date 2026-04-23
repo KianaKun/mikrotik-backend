@@ -6,10 +6,18 @@ use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TokenController;
 use App\Http\Controllers\Api\UserAuthController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\CaptiveController;
+
 
 // ── Public ────────────────────────────────────────────────
 Route::post('/admin/login', [AdminAuthController::class, 'login']);
 Route::post('/user/login',  [UserAuthController::class, 'login']);
+
+// endpoint login user WiFi (captive portal)
+Route::post('/captive/login', [TokenController::class, 'login']);
+// endpoint khusus OS (WAJIB)
+Route::get('/generate_204', [CaptiveController::class, 'androidCheck']);
+Route::get('/hotspot-detect.html', [CaptiveController::class, 'appleCheck']);
 
 // ── Admin (butuh token Sanctum) ───────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -33,4 +41,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // MikroTik
     Route::get('/mikrotik/devices',       [MikroTikController::class, 'devices']);
     Route::put('/mikrotik/speed',         [MikroTikController::class, 'setSpeed']);
+    Route::post('/mikrotik/disconnect', [MikroTikController::class, 'disconnect'])
+    ->middleware('auth:sanctum');
 });
